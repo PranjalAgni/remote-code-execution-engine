@@ -1,0 +1,52 @@
+import { Controller, Post, Body } from "@nestjs/common";
+import { ContainerManagerService } from "./container-manager/container-manager.service";
+
+@Controller("execute")
+export class ExecutionController {
+    constructor(private readonly containerService: ContainerManagerService) { }
+
+    @Post()
+    async executeCode(
+        @Body() body: { language: string; code: string },
+    ): Promise<any> {
+        // Map the language to the appropriate Docker image and command.
+        // This is a simplified example. In a full implementation, you'll need to
+        // write the code to a file, mount it in the container, etc.
+        const imageMap = {
+            javascript: "node:14",
+            python: "python:3.10",
+            c: "gcc:latest",
+            cpp: "gcc:latest",
+            java: "openjdk:latest",
+            golang: "golang:latest",
+            // Add mappings for C, C++, Java, Golang, etc.
+        };
+
+        
+        const commandMap = {
+            javascript: ["node", "code.js"],
+            python: ["python", "code.py"],
+            c: ["gcc", "-o", "a.out", "code.c", "&&", "./a.out"],
+            cpp: ["g++", "-o", "a.out", "code.cpp", "&&", "./a.out"],
+            java: ["javac", "code.java", "&&", "java", "code"],
+            golang: ["go", "run", "code.go"],
+        };
+
+        const image = imageMap[body.language.toLowerCase()];
+        if (!image) {
+            return { error: "Unsupported language" };
+        }
+
+        // we can just run the program
+        // <language_compiler code.<language>
+        
+        const cmd = commandMap[body.language.toLowerCase()];
+
+        try {
+            const output = await this.containerService.runContainer(image, cmd);
+            return { output };
+        } catch (error) {
+            return { error: error.message };
+        }
+    }
+}
