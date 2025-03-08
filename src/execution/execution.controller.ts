@@ -10,9 +10,6 @@ export class ExecutionController {
     async executeCode(
         @Body() body: { language: string; code: string },
     ): Promise<any> {
-        // Map the language to the appropriate Docker image and command.
-        // This is a simplified example. In a full implementation, you'll need to
-        // write the code to a file, mount it in the container, etc.
         const imageMap = {
             javascript: "node:14",
             python: "python:3.10",
@@ -20,9 +17,7 @@ export class ExecutionController {
             cpp: "gcc:latest",
             java: "openjdk:latest",
             golang: "golang:latest",
-            // Add mappings for C, C++, Java, Golang, etc.
         };
-
 
         const commandMap = {
             javascript: ["node", "code.js"],
@@ -46,16 +41,16 @@ export class ExecutionController {
             return { error: "Unsupported language" };
         }
 
-        // we can just run the program
-        // <language_compiler code.<language>
-        
         const cmd = commandMap[body.language.toLowerCase()];
 
         this.logger.log(`Running command: ${cmd.join(" ")}`);
 
         try {
+            const startTime = Date.now();
             const output = await this.containerService.runContainer(image, cmd, body.code, extensionMap[body.language.toLowerCase()]);
-            return { output };
+            const endTime = Date.now();
+            const executionTime = (endTime - startTime) / 1000; // Convert milliseconds to seconds
+            return { output, executionTime };
         } catch (error) {
             return { error: error.message };
         }

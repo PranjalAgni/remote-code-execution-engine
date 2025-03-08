@@ -4,7 +4,7 @@ import { generateShortUUID } from "../../utils/id";
 import * as path from "path";
 import * as tar from "tar-fs";
 import * as stream from "stream";
-import { createDir, createFile } from "src/utils/io";
+import { createDir, createFile, deleteDir } from "src/utils/io";
 import { promisify } from "util";
 
 @Injectable()
@@ -44,7 +44,7 @@ export class ContainerManagerService {
         await createFile(`code.${extension}`, codeDirPath, code);
 
         try {
-            const finished = promisify(require("stream").finished);
+            const finished = promisify(stream.finished);
             // 1. Create a container with gcc:latest
             const container = await this.docker.createContainer({
                 Image: "gcc:latest",
@@ -66,7 +66,7 @@ export class ContainerManagerService {
 
             // 3. Compile the C++ code inside the container.
             // Here we assume that the main file is "main.cpp" and we produce an executable "myapp".
-            
+
             const compileExec = await container.exec({
                 Cmd: [
                     "bash",
@@ -103,6 +103,8 @@ export class ContainerManagerService {
         } catch (error) {
             this.logger.error("Error running container", error);
             throw error;
+        } finally {
+            await deleteDir(codeDirPath)
         }
     }
 

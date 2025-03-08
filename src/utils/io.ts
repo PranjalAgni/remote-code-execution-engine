@@ -8,6 +8,13 @@ export async function createDir(path: string) {
     }
 }
 
+export async function deleteDir(path: string) {
+    const exists = await pathExists(path);
+    if (exists) {
+        await fs.rm(path, { recursive: true });
+    }
+}
+
 export async function createFile(name: string, dirPath: string, content: string) {
     const exists = await pathExists(dirPath);
     if (exists) {
