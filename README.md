@@ -33,3 +33,8 @@
 ### Deployment & Networking
 
 -   **Deployment & Communication:** Details such as the deployment environment and networking between Node and Docker will be addressed in later versions (v2).
+
+
+### Current Architecture
+
+

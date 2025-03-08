@@ -44,27 +44,78 @@ export class ContainerManagerService {
         await createFile(`code.${extension}`, codeDirPath, code);
 
         try {
+            const container = await this.docker.createContainer({
+                Image: "gcc:latest",
+                Cmd: [
+                    "bash",
+                    "-c",
+                    "cd /usr/src/app && g++ -o code.out code.cpp && ./code.out",
+                ],
+                Tty: false,
+                WorkingDir: "/usr/src/app",
+                HostConfig: {
+                    Memory: 30 * 1024 * 1024, // 30MB memory limit
+                    Binds: [`${filePath}:/usr/src/app/code.${extension}`],
+                }
+            });
+
+            await container.start();
+            this.logger.verbose(`Container started and Copied the local "codes" directory into /usr/src/app inside the container.`);
+
+            const stream = await container.logs({
+                follow: true,
+                stdout: true,
+                stderr: true,
+            });
+
+            let output = "";
+            stream.on("data", (chunk: Buffer) => {
+                output += chunk.toString();
+            });
+
+            await container.wait();
+            return output;            
+
+        } catch (error) {
+            this.logger.error("Error running container", error);
+            throw error;
+        } finally {
+            await deleteDir(codeDirPath)
+        }
+    }
+
+    async runContainerSlow(
+        image: string,
+        cmd: string[],
+        code: string,
+        extension: string,
+    ): Promise<string> {
+        const id = generateShortUUID();
+        const codeDirPath = path.join(process.cwd(), "codes", id);
+        this.logger.log(`Creating code directory: ${codeDirPath}`);
+        await createDir(codeDirPath);
+        const filePath = path.join(codeDirPath, `code.${extension}`);
+        this.logger.log(`Creating file: ${filePath}`);
+        await createFile(`code.${extension}`, codeDirPath, code);
+
+        try {
             const finished = promisify(stream.finished);
             // 1. Create a container with gcc:latest
             const container = await this.docker.createContainer({
                 Image: "gcc:latest",
                 Cmd: ["tail", "-f", "/dev/null"], // Keeps the container running.
                 Tty: false,
-                WorkingDir: "/usr/src/app"
+                WorkingDir: "/usr/src/app",
+                HostConfig: {
+                    Memory: 30 * 1024 * 1024, // 30MB memory limit
+                    Binds: [`${filePath}:/usr/src/app/code.${extension}`],
+                }
             });
 
             await container.start();
-            this.logger.verbose(`Container started`);
-
-            // 2. Copy the local "codes" directory into /usr/src/app inside the container.
-            const tarStream = tar.pack(codeDirPath);
-            await container.putArchive(tarStream, { path: "/usr/src/app" });
-
-            this.logger.log(
-                `Copied the local "codes" directory into /usr/src/app inside the container.`,
-            );
-
-            // 3. Compile the C++ code inside the container.
+            this.logger.verbose(`Container started and Copied the local "codes" directory into /usr/src/app inside the container.`);
+            
+            // 2. Compile the C++ code inside the container.
             // Here we assume that the main file is "main.cpp" and we produce an executable "myapp".
 
             const compileExec = await container.exec({
@@ -81,7 +132,7 @@ export class ContainerManagerService {
             await finished(compileStream);
             this.logger.log("Compilation finished.");
 
-            // 4. Run the compiled executable.
+            // 3. Run the compiled executable.
             const runExec = await container.exec({
                 Cmd: ["bash", "-c", "cd /usr/src/app && ./code.out"],
                 AttachStdout: true,
@@ -108,50 +159,5 @@ export class ContainerManagerService {
         }
     }
 
-    async runContainerBad(
-        image: string,
-        cmd: string[],
-        code: string,
-        extension: string,
-    ): Promise<string> {
-        const id = generateShortUUID();
-        const codeDirPath = path.join(process.cwd(), "codes", id);
-        this.logger.log(`Creating code directory: ${codeDirPath}`);
-        await createDir(codeDirPath);
-        const filePath = path.join(codeDirPath, `code.${extension}`);
-        this.logger.log(`Creating file: ${filePath}`);
-        await createFile(`code.${extension}`, codeDirPath, code);
-
-        try {
-            const container = await this.docker.createContainer({
-                Image: image,
-                Cmd: ["gcc -o a.out ./code.cpp"],
-                HostConfig: {
-                    AutoRemove: true,
-                    Memory: 30 * 1024 * 1024, // 30MB memory limit
-                    Binds: [`${filePath}:/usr/src/app/code.${extension}`],
-                    // Additional security options can be added here
-                },
-                WorkingDir: "/usr/src/app",
-            });
-
-            await container.start();
-            const stream = await container.logs({
-                follow: true,
-                stdout: true,
-                stderr: true,
-            });
-
-            let output = "";
-            stream.on("data", (chunk: Buffer) => {
-                output += chunk.toString();
-            });
-
-            await container.wait();
-            return output;
-        } catch (error) {
-            this.logger.error("Error running container", error);
-            throw error;
-        }
-    }
+   
 }
