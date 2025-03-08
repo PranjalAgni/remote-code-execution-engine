@@ -1,5 +1,8 @@
 import { Controller, Post, Body, Logger } from "@nestjs/common";
 import { ContainerManagerService } from "./container-manager/container-manager.service";
+import { imageMap } from "src/config/image-map";
+import { commandMap } from "src/config/command-map";
+import { extensionMap } from "src/config/extension-map";
 
 @Controller("execute")
 export class ExecutionController {
@@ -10,40 +13,14 @@ export class ExecutionController {
     async executeCode(
         @Body() body: { language: string; code: string },
     ): Promise<any> {
-        const imageMap = {
-            javascript: "node:14",
-            python: "python:3.10",
-            c: "gcc:latest",
-            cpp: "gcc:latest",
-            java: "openjdk:latest",
-            golang: "golang:latest",
-        };
-
-        const commandMap = {
-            javascript: ["node", "code.js"],
-            python: ["python", "code.py"],
-            c: ["gcc", "-o", "a.out", "code.c", "&&", "./a.out"],
-            cpp: ["g++", "-o", "a.out", "code.cpp", "&&", "./a.out"],
-            java: ["javac", "code.java", "&&", "java", "code"],
-            golang: ["go", "run", "code.go"],
-        };
-
-        const extensionMap = {
-            javascript: "js",
-            python: "py",
-            c: "c",
-            cpp: "cpp",
-            java: "java",
-        };
-
         const image = imageMap[body.language.toLowerCase()];
         if (!image) {
             return { error: "Unsupported language" };
         }
-
+        
         const cmd = commandMap[body.language.toLowerCase()];
 
-        this.logger.log(`Running command: ${cmd.join(" ")}`);
+        this.logger.log(`Running command: ${cmd}`);
 
         try {
             const startTime = Date.now();

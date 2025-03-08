@@ -2,7 +2,6 @@ import { Injectable, Logger } from "@nestjs/common";
 import * as Docker from "dockerode";
 import { generateShortUUID } from "../../utils/id";
 import * as path from "path";
-import * as tar from "tar-fs";
 import * as stream from "stream";
 import { createDir, createFile, deleteDir } from "src/utils/io";
 import { promisify } from "util";
@@ -31,7 +30,7 @@ export class ContainerManagerService {
 
     async runContainer(
         image: string,
-        cmd: string[],
+        runCommand: string,
         code: string,
         extension: string,
     ): Promise<string> {
@@ -45,11 +44,11 @@ export class ContainerManagerService {
 
         try {
             const container = await this.docker.createContainer({
-                Image: "gcc:latest",
+                Image: image,
                 Cmd: [
                     "bash",
                     "-c",
-                    "cd /usr/src/app && g++ -o code.out code.cpp && ./code.out",
+                    `cd /usr/src/app; ${runCommand}`,
                 ],
                 Tty: false,
                 WorkingDir: "/usr/src/app",
