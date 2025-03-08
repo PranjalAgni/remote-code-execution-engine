@@ -1,8 +1,9 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body, Logger } from "@nestjs/common";
 import { ContainerManagerService } from "./container-manager/container-manager.service";
 
 @Controller("execute")
 export class ExecutionController {
+    private readonly logger = new Logger(ExecutionController.name);
     constructor(private readonly containerService: ContainerManagerService) { }
 
     @Post()
@@ -22,7 +23,7 @@ export class ExecutionController {
             // Add mappings for C, C++, Java, Golang, etc.
         };
 
-        
+
         const commandMap = {
             javascript: ["node", "code.js"],
             python: ["python", "code.py"],
@@ -30,6 +31,14 @@ export class ExecutionController {
             cpp: ["g++", "-o", "a.out", "code.cpp", "&&", "./a.out"],
             java: ["javac", "code.java", "&&", "java", "code"],
             golang: ["go", "run", "code.go"],
+        };
+
+        const extensionMap = {
+            javascript: "js",
+            python: "py",
+            c: "c",
+            cpp: "cpp",
+            java: "java",
         };
 
         const image = imageMap[body.language.toLowerCase()];
@@ -42,8 +51,10 @@ export class ExecutionController {
         
         const cmd = commandMap[body.language.toLowerCase()];
 
+        this.logger.log(`Running command: ${cmd.join(" ")}`);
+
         try {
-            const output = await this.containerService.runContainer(image, cmd);
+            const output = await this.containerService.runContainer(image, cmd, body.code, extensionMap[body.language.toLowerCase()]);
             return { output };
         } catch (error) {
             return { error: error.message };
