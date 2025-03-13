@@ -38,7 +38,7 @@
 ### Current Architecture
 
 1. User sends the POST request with lang and code
-2. We start a docker container mounting the code
+2. We start a docker container mounting the code inside it
 3. We then run the code in a new bash instance using the run command
-4. We collect the logs from dockerode and send back as the response
-5. We wait for container to pause execution and then send back the response
+5. We collect the logs from dockerode and send back as the response
+6. We wait for container until the  execution is completed and then send back the response
