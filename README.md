@@ -42,3 +42,4 @@
 3. We then run the code in a new bash instance using the run command
 5. We collect the logs from dockerode and send back as the response
 6. We wait for container until the  execution is completed and then send back the response
+7. Enjoy it
