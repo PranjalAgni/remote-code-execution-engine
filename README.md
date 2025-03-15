@@ -43,3 +43,5 @@
 5. We collect the logs from dockerode and send back as the response
 6. We wait for container until the  execution is completed and then send back the response
 7. Enjoy it
+8. 8 done
+9. 
